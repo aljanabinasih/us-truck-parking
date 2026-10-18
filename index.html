@@ -91,7 +91,6 @@
 
         var markersLayer = L.layerGroup().addTo(map);
 
-        // Sample Verified Truck Parking Data with Miles distance and types
         var allParkingSpots = [
             { lat: 36.1200, lon: -79.8100, name: "I-40 East Official Rest Area", type: "rest_area", dist: 4.2 },
             { lat: 36.0500, lon: -79.7500, name: "Pilot Travel Center (Commercial)", type: "commercial", dist: 6.8 },
@@ -100,6 +99,20 @@
         ];
 
         var favorites = JSON.parse(localStorage.getItem('truck_favs')) || [];
+
+        // Auto get user live geolocation
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                var userLat = position.coords.latitude;
+                var userLon = position.coords.longitude;
+                map.setView([userLat, userLon], 11);
+
+                L.marker([userLat, userLon]).addTo(map)
+                    .bindPopup("<b>📍 Your Live Location</b>").openPopup();
+            }, function(error) {
+                console.log("Geolocation permission denied or error.");
+            });
+        }
 
         function renderMarkers(spots) {
             markersLayer.clearLayers();
@@ -152,7 +165,6 @@
                         var lon = parseFloat(data[0].lon);
                         map.setView([lat, lon], 11);
                         
-                        // Add dummy dynamic spots around searched city for realism
                         var dynamicSpots = [
                             { lat: lat + 0.05, lon: lon + 0.05, name: query + " North Truck Stop", type: "commercial", dist: 3.5 },
                             { lat: lat - 0.05, lon: lon - 0.05, name: query + " Highway Rest Area", type: "rest_area", dist: 7.1 }
