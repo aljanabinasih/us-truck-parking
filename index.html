@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>US Safe Truck Parking Hub</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; background: #121212; color: #fff; }
+        #header { padding: 15px; background: #1f1f1f; text-align: center; border-bottom: 2px solid #333; }
+        #map { height: 63vh; width: 100%; }
+        #footer { padding: 12px; text-align: center; background: #1f1f1f; border-top: 2px solid #333; }
+        .btn { background: #4CAF50; color: #fff; padding: 10px 20px; text-decoration: none; font-weight: bold; border-radius: 5px; display: inline-block; margin-top: 5px; font-size: 15px; }
+        .distance-label {
+            background: rgba(0, 0, 0, 0.85);
+            border: 1px solid #4CAF50;
+            color: #4CAF50;
+            padding: 2px 6px;
+            font-size: 12px;
+            font-weight: bold;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+        .locked-label {
+            background: rgba(0, 0, 0, 0.85);
+            border: 1px solid #ff9800;
+            color: #ff9800;
+            padding: 2px 6px;
+            font-size: 12px;
+            font-weight: bold;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+        .gps-btn {
+            background: #4CAF50;
+            color: white;
+            padding: 6px 12px;
+            text-decoration: none;
+            border-radius: 4px;
+            display: inline-block;
+            margin-top: 5px;
+            font-weight: bold;
+        }
+        .lock-btn {
+            background: #ff9800;
+            color: black;
+            padding: 6px 12px;
+            text-decoration: none;
+            border-radius: 4px;
+            display: inline-block;
+            margin-top: 5px;
+            font-weight: bold;
+        }
+        #trial-banner { background: #ff9800; color: #000; padding: 8px; font-weight: bold; font-size: 14px; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <div id="trial-banner">جاري التحقق من الفترة التجريبية...</div>
+
+    <div id="header">
+        <h2>US Safe Truck Parking</h2>
+        <p>التطبيق الأول المخصص لسائقي الشاحنات في أمريكا</p>
+    </div>
+
+    <div id="map"></div>
+
+    <div id="footer">
+        <p style="margin: 0 0 5px 0; font-size: 13px; color: #bbb;">استمتع بفترة التجربة المجانية لمدة أسبوع</p>
+        <a href="#" class="btn">ترقية الحساب ($19.99 شهرياً)</a>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        function checkTrialStatus() {
+            var trialStart = localStorage.getItem('trial_start_date');
+            var now = new Date().getTime();
+            
+            if (!trialStart) {
+                trialStart = now;
+                localStorage.setItem('trial_start_date', trialStart);
+            }
+            
+            var sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+            var elapsedTime = now - parseInt(trialStart);
+            var isTrialActive = elapsedTime < sevenDaysMs;
+            
+            if (isTrialActive) {
+                var daysLeft = Math.ceil((sevenDaysMs - elapsedTime) / (1000 * 60 * 60 * 24));
+                document.getElementById('trial-banner').innerHTML = "🎉 فترة تجريبية مجانية نشطة: متبقي " + daysLeft + " أيام لفتح كافة المواقف!";
+                document.getElementById('trial-banner').style.background = "#4CAF50";
+                document.getElementById('trial-banner').style.color = "#fff";
+            } else {
+                document.getElementById('trial-banner').innerHTML = "⏳ انتهت الفترة التجريبية (أول 3 استراحات متاحة مجاناً)";
+                document.getElementById('trial-banner').style.background = "#ff9800";
+                document.getElementById('trial-banner').style.color = "#000";
+            }
+            
+            return isTrialActive;
+        }
+
+        // إحداثيات افتراضية في أمريكا (تكساس) لتظهر الخريطة فوراً بدون فراغ
+        var defaultLat = 31.9686;
+        var defaultLng = -99.9018;
+
+        var map = L.map('map').setView([defaultLat, defaultLng], 6);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // تحميل المواقف مباشرة على الموقع الافتراضي
+        loadSafeTruckParking(defaultLat, defaultLng);
+
+        // محاولة جلب موقع المستخدم الفعلي إن أمكن
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                var lat = position.coords.latitude;
+                var lng = position.coords.longitude;
+                
+                map.setView([lat, lng], 10);
+                
+                L.marker([lat, lng]).addTo(map)
+                  .bindPopup("<b>موقعك الحالي</b>").openPopup();
+
+                loadSafeTruckParking(lat, lng);
+            });
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            var R = 3958.8;
+            var dLat = (lat2 - lat1) * Math.PI / 180;
+            var dLon = (lon2 - lon1) * Math.PI / 180;
+            var a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return (R * c).toFixed(1);
+        }
+
+        function loadSafeTruckParking(currentLat, currentLng) {
+            var isTrialActive = checkTrialStatus();
+            var bbox = (currentLat - 0.8) + "," + (currentLng - 0.8) + "," + (currentLat + 0.8) + "," + (currentLng + 0.8);
+            
+            var query = `
+                [out:json];
+                (
+                  node["highway"="rest_area"](${bbox});
+                  way["highway"="rest_area"](${bbox});
+                  node["amenity"="parking"]["hgv"="yes"](${bbox});
+                  way["amenity"="parking"]["hgv"="yes"](${bbox});
+                );
+                out center;
+            `;
+            
+            var url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query);
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    var locations = [];
+                    data.elements.forEach(element => {
+                        var pLat = element.lat || (element.center ? element.center.lat : null);
+                        var pLon = element.lon || (element.center ? element.center.lon : null);
+                        if (!pLat || !pLon) return;
+
+                        var tags = element.tags || {};
+                        var name = tags.name || tags.brand || "استراحة شاحنات معتمدة";
+                        var dist = parseFloat(calculateDistance(currentLat, currentLng, pLat, pLon));
+
+                        locations.push({ lat: pLat, lon: pLon, name: name, distance: dist });
+                    });
+
+                    locations.sort((a, b) => a.distance - b.distance);
+
+                    locations.forEach((loc, index) => {
+                        var isAccessible = isTrialActive || (index < 3);
+                        var marker = L.marker([loc.lat, loc.lon]).addTo(map);
+
+                        if (isAccessible) {
+                            marker.bindTooltip(loc.distance + " ميل", {
+                                permanent: true,
+                                direction: 'bottom',
+                                className: 'distance-label'
+                            });
+
+                            var googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${loc.lat},${loc.lon}&travelmode=driving`;
+
+                            marker.bindPopup(
+                                "<b>🚚 " + loc.name + "</b><br>" +
+                                "المسافة: " + loc.distance + " ميل<br>" +
+                                "<span style='color: #4CAF50; font-weight: bold;'>موقف قانوني وآمن</span><br>" +
+                                "<a href='" + googleMapsUrl + "' target='_blank' class='gps-btn'>بدء التوجيه (GPS) ➔</a>"
+                            );
+                        } else {
+                            marker.bindTooltip("موقف مقفل 🔒", {
+                                permanent: true,
+                                direction: 'bottom',
+                                className: 'locked-label'
+                            });
+
+                            marker.bindPopup(
+                                "<b>🔒 موقف إضافي مقفل</b><br>" +
+                                "المسافة: " + loc.distance + " ميل<br>" +
+                                "<span style='color: #ff9800;'>انتهت فترتك التجريبية. اشترك لفتحه</span><br>" +
+                                "<a href='#' class='lock-btn'>اشتري النسخة الكاملة ($19.99)</a>"
+                            );
+                        }
+                    });
+                })
+                .catch(err => console.log('خطأ في جلب البيانات:', err));
+        }
+    </script>
+
+</body>
+</html>
