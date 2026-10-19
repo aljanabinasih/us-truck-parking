@@ -113,76 +113,120 @@
             return deg * (Math.PI/180);
         }
 
-        function fetchNationwideParking(lat, lon) {
-            currentUserLat = lat;
-            currentUserLon = lon;
-            
-            // Wide bounding box (approx 300+ miles coverage radius) to fetch all interstate stops and rest areas
-            var bbox = `${lat-3.5},${lon-3.5},${lat+3.5},${lon+3.5}`;
-            var query = `[out:json][timeout:30];(node["amenity"="parking"](${bbox});way["amenity"="parking"](${bbox});node["highway"="rest_area"](${bbox});way["highway"="rest_area"](${bbox});node["amenity"="fuel"](${bbox});way["amenity"="fuel"](${bbox}););out body;>;out skel qt;`;
-            
-            
-var overpassServers = [
-    'https://overpass-api.de/api/interpreter',
-    'https://overpass.kumi.systems/api/interpreter'
-];
+        
+function fetchNationwideParking(lat, lon) {
+    currentUserLat = lat;
+    currentUserLon = lon;
 
-var url = overpassServers[0] + '?data=' + encodeURIComponent(query);
+    var bbox = `${lat - 3.5},${lon - 3.5},${lat + 3.5},${lon + 3.5}`;
 
-fetch(url)
+    var query = `[out:json][timeout:30];(
+        node["amenity"="parking"](${bbox});
+        way["amenity"="parking"](${bbox});
+        node["highway"="rest_area"](${bbox});
+        way["highway"="rest_area"](${bbox});
+        node["amenity"="fuel"](${bbox});
+        way["amenity"="fuel"](${bbox});
+    );out center;`;
 
-                .then(res => res.json())
-                .then(data => {
-                    allParkingSpots = [];
-                    if (data && data.elements) {
-                        
-data.elements.forEach(el => {
-    var spotLat = el.lat ?? el.center?.lat;
-    var spotLon = el.lon ?? el.center?.lon;
+    var overpassServers = [
+        'https://overpass-api.de/api/interpreter',
+        'https://overpass.kumi.systems/api/interpreter',
+        'https://overpass.private.coffee/api/interpreter'
+    ];
 
-    if (Number.isFinite(spotLat) && Number.isFinite(spotLon)) {
-        var name = (el.tags && (el.tags.name || el.tags.operator))
-            ? (el.tags.name || el.tags.operator)
-            : "Unnamed Parking or Rest Area";
-
-        var type = (el.tags && el.tags.highway === 'rest_area')
-            ? 'rest_area'
-            : 'commercial';
-
-        var dist = calculateDistance(
-            currentUserLat,
-            currentUserLon,
-            spotLat,
-            spotLon
-        );
-
-        if (!allParkingSpots.some(s =>
-            Math.abs(s.lat - spotLat) < 0.001 &&
-            Math.abs(s.lon - spotLon) < 0.001
-        )) {
-            allParkingSpots.push({
-              lat: spotLat,
-                lon: spotLon,
-                name: name,
-                type: type,
-                dist: parseFloat(dist)
-            });
+    function tryOverpassServer(index) {
+        if (index >= overpassServers.length) {
+            console.error("All Overpass servers failed.");
+            allParkingSpots = [];
+            renderMarkers([]);
+            return;
         }
-    } 
-});
 
+        var url = overpassServers[index] +
+            '?data=' + encodeURIComponent(query);
+
+        fetch(url)
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error("HTTP error: " + res.status);
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (!data || !Array.isArray(data.elements)) {
+                    throw new Error("Invalid Overpass response");
+                }
+
+                allParkingSpots = [];
+
+                data.elements.forEach(el => {
+                    var spotLat = el.lat ?? el.center?.lat;
+                    var spotLon = el.lon ?? el.center?.lon;
+
+                    if (
+                        Number.isFinite(spotLat) &&
+                        Number.isFinite(spotLon)
+                    ) {
+                        var tags = el.tags || {};
+
+                        var name = tags.name ||
+                            tags.operator ||
+                            tags.brand ||
+                            "Unnamed Parking or Rest Area";
+
+                        var type = tags.highway === "rest_area"
+                            ? "rest_area"
+                            : "commercial";
+
+                        var dist = calculateDistance(
+                            currentUserLat,
+                            currentUserLon,
+                            spotLat,
+                            spotLon
+                        );
+
+                        var alreadyExists = allParkingSpots.some(s =>
+                            Math.abs(s.lat - spotLat) < 0.001 &&
+                            Math.abs(s.lon - spotLon) < 0.001
+                        );
+
+                        if (!alreadyExists) {
+                            allParkingSpots.push({
+                                lat: spotLat,
+                                lon: spotLon,
+                                name: name,
+                                type: type,
+                                dist: parseFloat(dist)
+                            });
+                        }
                     }
-
-                   
-
-                    allParkingSpots.sort((a, b) => a.dist - b.dist);
-                    renderMarkers(allParkingSpots);
-                })
-                .catch(err => {
-                    console.log("API Error", err);
-                    renderMarkers(allParkingSpots);
                 });
-        }
+
+                allParkingSpots.sort((a, b) => a.dist - b.dist);
+                renderMarkers(allParkingSpots);
+
+                console.log(
+                    "Parking loaded:",
+                    allParkingSpots.length,
+                    "Using server:",
+                    overpassServers[index]
+                );
+            })
+            .catch(err => {
+                console.warn(
+                    "Overpass server failed:",
+                    overpassServers[index],
+                    err
+                );
+
+                tryOverpassServer(index + 1);
+            });
+    }
+
+    tryOverpassServer(0);
+}
+
 
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(position) {
