@@ -148,15 +148,7 @@
                         });
                     }
 
-                    // Nationwide fallback safety net if network is slow
-                    if (allParkingSpots.length === 0) {
-                        allParkingSpots = [
-                            { lat: lat + 0.1, lon: lon + 0.1, name: "Pilot Travel Center (US Hub)", type: "commercial", dist: calculateDistance(lat, lon, lat + 0.1, lon + 0.1) },
-                            { lat: lat - 0.1, lon: lon - 0.1, name: "Love's Travel Stop (US Hub)", type: "commercial", dist: calculateDistance(lat, lon, lat - 0.1, lon - 0.1) },
-                            { lat: lat + 0.2, lon: lon - 0.1, name: "Official State DOT Rest Area", type: "rest_area", dist: calculateDistance(lat, lon, lat + 0.2, lon - 0.1) },
-                            { lat: lat - 0.2, lon: lon + 0.1, name: "TA Interstate Truck Plaza", type: "commercial", dist: calculateDistance(lat, lon, lat - 0.2, lon + 0.1) }
-                        ];
-                    }
+                   
 
                     allParkingSpots.sort((a, b) => a.dist - b.dist);
                     renderMarkers(allParkingSpots);
