@@ -129,7 +129,7 @@
                     allParkingSpots = [];
                     if (data && data.elements) {
                         data.elements.forEach(el => {
-                            if (el.lat && el.lon) {
+                            if (Number.isFinite(el.lat) && Number.isFinite(el.lon)) {
                                 var name = (el.tags && (el.tags.name || el.tags.operator)) ? (el.tags.name || el.tags.operator) : "US Interstate Truck Stop & Rest Area";
                                 var type = (el.tags && el.tags.highway === 'rest_area') ? 'rest_area' : 'commercial';
                                 var dist = calculateDistance(currentUserLat, currentUserLon, el.lat, el.lon);
