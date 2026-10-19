@@ -91,28 +91,41 @@
 
         var markersLayer = L.layerGroup().addTo(map);
         
-        // Comprehensive Nationwide Truck Parking & Rest Areas Database
+        // Extended Nationwide Database of Truck Parking & Rest Areas
         var allParkingSpots = [
-            // North Carolina / Greensboro Area
+            // North Carolina
             { lat: 36.0983, lon: -79.9572, name: "Pilot Travel Center #352 (I-40)", type: "commercial", city: "Greensboro" },
             { lat: 36.1045, lon: -79.5210, name: "Love's Travel Stop #489 (I-85)", type: "commercial", city: "Greensboro" },
             { lat: 36.0321, lon: -80.1245, name: "I-40 Official State Rest Area", type: "rest_area", city: "Greensboro" },
-            { lat: 35.8456, lon: -79.8123, name: "I-85 North Official Rest Area", type: "rest_area", city: "Greensboro" },
-            
-            // Texas / Dallas & Houston Area
-            { lat: 32.7767, lon: -96.7970, name: "Pilot Travel Center (I-30 Dallas)", type: "commercial", city: "Dallas" },
-            { lat: 32.8000, lon: -96.8000, name: "TA Travel Center Dallas", type: "commercial", city: "Dallas" },
-            { lat: 29.7604, lon: -95.3698, name: "Love's Travel Stop Houston", type: "commercial", city: "Houston" },
-            { lat: 29.8000, lon: -95.4000, name: "Texas Official Rest Area I-10", type: "rest_area", city: "Houston" },
+            { lat: 35.8456, lon: -79.8123, name: "I-85 North Official State Rest Area", type: "rest_area", city: "Greensboro" },
+            { lat: 35.2271, lon: -80.8431, name: "TA Charlotte Commercial Truck Stop", type: "commercial", city: "Charlotte" },
+            { lat: 35.7796, lon: -78.6382, name: "Raleigh Interstate Truck Parking", type: "commercial", city: "Raleigh" },
 
-            // Illinois / Chicago Area
+            // Texas
+            { lat: 32.7767, lon: -96.7970, name: "Pilot Travel Center (I-30 Dallas)", type: "commercial", city: "Dallas" },
+            { lat: 32.8500, lon: -96.9000, name: "TA Travel Center Dallas NW", type: "commercial", city: "Dallas" },
+            { lat: 29.7604, lon: -95.3698, name: "Love's Travel Stop Houston", type: "commercial", city: "Houston" },
+            { lat: 29.9000, lon: -95.5000, name: "Texas Official Rest Area I-10", type: "rest_area", city: "Houston" },
+            { lat: 30.2672, lon: -97.7431, name: "Austin Truck Plaza & Rest Area", type: "commercial", city: "Austin" },
+
+            // Illinois & Midwest
             { lat: 41.8781, lon: -87.6298, name: "Pilot Travel Center Chicago South", type: "commercial", city: "Chicago" },
-            { lat: 41.9000, lon: -87.6500, name: "Love's Travel Stop Interstate 80", type: "commercial", city: "Chicago" },
+            { lat: 41.9500, lon: -87.8000, name: "Love's Travel Stop Interstate 80", type: "commercial", city: "Chicago" },
             { lat: 41.8000, lon: -87.7000, name: "Illinois State Tollway Oasis Rest Area", type: "rest_area", city: "Chicago" },
 
-            // California / Los Angeles Area
+            // California
             { lat: 34.0522, lon: -118.2437, name: "TA Los Angeles Truck Stop", type: "commercial", city: "Los Angeles" },
-            { lat: 34.1000, lon: -118.3000, name: "California Highway Rest Area I-5", type: "rest_area", city: "Los Angeles" }
+            { lat: 34.2000, lon: -118.4000, name: "California Highway Rest Area I-5", type: "rest_area", city: "Los Angeles" },
+            { lat: 32.7157, lon: -117.1611, name: "San Diego Port Truck Parking Hub", type: "commercial", city: "San Diego" },
+
+            // Florida & Georgia
+            { lat: 25.7617, lon: -80.1918, name: "Miami Interstate Truck Depot", type: "commercial", city: "Miami" },
+            { lat: 33.7490, lon: -84.3880, name: "Pilot Travel Center Atlanta", type: "commercial", city: "Atlanta" },
+            { lat: 33.8000, lon: -84.4500, name: "Georgia State Official Rest Area I-75", type: "rest_area", city: "Atlanta" },
+
+            // New York & Pennsylvania
+            { lat: 40.7128, lon: -74.0060, name: "New York Metro Commercial Truck Stop", type: "commercial", city: "New York" },
+            { lat: 40.0000, lon: -75.1000, name: "Pennsylvania Turnpike Rest Area", type: "rest_area", city: "Philadelphia" }
         ];
 
         var favorites = JSON.parse(localStorage.getItem('truck_favs')) || [];
@@ -208,7 +221,7 @@
                         currentUserLon = parseFloat(data[0].lon);
                         map.setView([currentUserLat, currentUserLon], 10);
 
-                        // Add dynamic local spots for the searched city
+                        // Add dynamic local spots for the searched city if not already present
                         var exists = allParkingSpots.some(s => s.city.toLowerCase() === query.toLowerCase());
                         if (!exists) {
                             allParkingSpots.push(
