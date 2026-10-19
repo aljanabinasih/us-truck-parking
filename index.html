@@ -121,9 +121,16 @@
             var bbox = `${lat-3.5},${lon-3.5},${lat+3.5},${lon+3.5}`;
             var query = `[out:json][timeout:30];(node["amenity"="parking"](${bbox});way["amenity"="parking"](${bbox});node["highway"="rest_area"](${bbox});way["highway"="rest_area"](${bbox});node["amenity"="fuel"](${bbox});way["amenity"="fuel"](${bbox}););out body;>;out skel qt;`;
             
-            var url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query);
+            
+var overpassServers = [
+    'https://overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter'
+];
 
-            fetch(url)
+var url = overpassServers[0] + '?data=' + encodeURIComponent(query);
+
+fetch(url)
+
                 .then(res => res.json())
                 .then(data => {
                     allParkingSpots = [];
