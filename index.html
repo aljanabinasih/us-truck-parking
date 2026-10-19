@@ -14,21 +14,21 @@
         .btn { background: #4CAF50; color: #fff; padding: 8px 16px; text-decoration: none; font-weight: bold; border-radius: 5px; display: inline-block; font-size: 14px; }
         input, select { padding: 8px; border-radius: 4px; border: 1px solid #444; background: #222; color: #fff; font-size: 14px; }
         .distance-label {
-            background: rgba(0, 0, 0, 0.85);
-            border: 1px solid #4CAF50;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #4CAF50;
             color: #4CAF50;
-            padding: 2px 6px;
-            font-size: 12px;
+            padding: 3px 7px;
+            font-size: 13px;
             font-weight: bold;
-            border-radius: 4px;
+            border-radius: 5px;
             white-space: nowrap;
         }
         .gps-btn {
             background: #4CAF50;
             color: white;
-            padding: 6px 12px;
+            padding: 8px 14px;
             text-decoration: none;
-            border-radius: 4px;
+            border-radius: 5px;
             display: inline-block;
             margin-top: 8px;
             font-weight: bold;
@@ -37,9 +37,9 @@
         .fav-btn {
             background: #ff9800;
             color: black;
-            padding: 6px 10px;
+            padding: 8px 12px;
             text-decoration: none;
-            border-radius: 4px;
+            border-radius: 5px;
             display: inline-block;
             margin-top: 8px;
             margin-left: 5px;
@@ -61,8 +61,8 @@
     </div>
 
     <div id="controls">
-        <input type="text" id="citySearch" placeholder="Search US City (e.g. Chicago, TX)...">
-        <button class="btn" onclick="searchCity()">Search City</button>
+        <input type="text" id="citySearch" placeholder="Search US City or State (e.g. Texas)...">
+        <button class="btn" onclick="searchCity()">Search USA</button>
         
         <select id="parkingFilter" onchange="filterParking()">
             <option value="all">All Parking Types</option>
@@ -82,6 +82,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
+        // Default center set to USA Center
         var map = L.map('map').setView([37.0902, -95.7129], 4);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -96,7 +97,7 @@
         var currentUserLon = -95.7129;
 
         function calculateDistance(lat1, lon1, lat2, lon2) {
-            var R = 3958.8; 
+            var R = 3958.8; // Miles
             var dLat = deg2rad(lat2 - lat1);
             var dLon = deg2rad(lon2 - lon1);
             var a = 
@@ -114,7 +115,7 @@
         function fetchRealParking(lat, lon) {
             currentUserLat = lat;
             currentUserLon = lon;
-            var bbox = `${lat-0.6},${lon-0.6},${lat+0.6},${lon+0.6}`;
+            var bbox = `${lat-0.8},${lon-0.8},${lat+0.8},${lon+0.8}`;
             var query = `[out:json][timeout:25];(node["amenity"="parking"](${bbox});way["amenity"="parking"](${bbox});node["highway"="rest_area"](${bbox});way["highway"="rest_area"](${bbox}););out body;>;out skel qt;`;
             
             var url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query);
@@ -155,10 +156,10 @@
             navigator.geolocation.getCurrentPosition(function(position) {
                 var userLat = position.coords.latitude;
                 var userLon = position.coords.longitude;
-                map.setView([userLat, userLon], 11);
+                map.setView([userLat, userLon], 10);
 
                 L.marker([userLat, userLon]).addTo(map)
-                    .bindPopup("<b>📍 Your Live Location</b>").openPopup();
+                    .bindPopup("<b>📍 Your Live GPS Location</b>").openPopup();
 
                 fetchRealParking(userLat, userLon);
             }, function(error) {
@@ -215,10 +216,10 @@
                     if (data && data.length > 0) {
                         var lat = parseFloat(data[0].lat);
                         var lon = parseFloat(data[0].lon);
-                        map.setView([lat, lon], 11);
+                        map.setView([lat, lon], 10);
                         fetchRealParking(lat, lon);
                     } else {
-                        alert("City not found. Please try another US city.");
+                        alert("Location not found in USA. Please try another city or state.");
                     }
                 })
                 .catch(err => console.log(err));
