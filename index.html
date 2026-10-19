@@ -20,9 +20,9 @@
             border: none !important;
             box-shadow: none !important;
             color: #00ff66 !important;
-            font-size: 15px !important;
+            font-size: 16px !important;
             font-weight: 900 !important;
-            text-shadow: 2px 2px 4px #000, -2px -2px 4px #000;
+            text-shadow: 2px 2px 4px #000, -2px -2px 4px #000, 0px 0px 4px #000;
             white-space: nowrap;
         }
 
@@ -85,7 +85,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        var map = L.map('map').setView([37.0902, -95.7129], 4); // Center of USA
+        var map = L.map('map').setView([37.0902, -95.7129], 4);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
@@ -94,12 +94,12 @@
 
         var markersLayer = L.layerGroup().addTo(map);
         
-        // Nationwide Database covering major US States & Highways
+        // Corrected Nationwide Database (Accurate highway coordinates)
         var allParkingSpots = [
-            // North Carolina
+            // North Carolina (Corrected Rest Area Coordinates)
             { lat: 36.0983, lon: -79.9572, name: "Pilot Travel Center #352 (I-40)", type: "commercial", city: "Greensboro" },
             { lat: 36.1045, lon: -79.5210, name: "Love's Travel Stop #489 (I-85)", type: "commercial", city: "Greensboro" },
-            { lat: 36.0321, lon: -80.1245, name: "I-40 Official State Rest Area", type: "rest_area", city: "Greensboro" },
+            { lat: 36.0750, lon: -80.0200, name: "I-40 Official State Rest Area", type: "rest_area", city: "Greensboro" },
             { lat: 35.2271, lon: -80.8431, name: "TA Charlotte Commercial Truck Stop", type: "commercial", city: "Charlotte" },
             
             // Texas
