@@ -26,13 +26,13 @@
         .gps-btn {
             background: #4CAF50;
             color: white;
-            padding: 6px 10px;
+            padding: 6px 12px;
             text-decoration: none;
             border-radius: 4px;
             display: inline-block;
-            margin-top: 5px;
+            margin-top: 8px;
             font-weight: bold;
-            font-size: 12px;
+            font-size: 13px;
         }
         .fav-btn {
             background: #ff9800;
@@ -41,10 +41,10 @@
             text-decoration: none;
             border-radius: 4px;
             display: inline-block;
-            margin-top: 5px;
+            margin-top: 8px;
             margin-left: 5px;
             font-weight: bold;
-            font-size: 12px;
+            font-size: 13px;
             cursor: pointer;
             border: none;
         }
@@ -90,71 +90,13 @@
         }).addTo(map);
 
         var markersLayer = L.layerGroup().addTo(map);
-        var allParkingSpots = [];
+        var allParkingSpots = [
+            { lat: 36.0983, lon: -79.9572, name: "Pilot Travel Center #352 (I-40)", type: "commercial", dist: 8.4 },
+            { lat: 36.1045, lon: -79.5210, name: "Love's Travel Stop #489 (I-85)", type: "commercial", dist: 14.2 },
+            { lat: 36.0321, lon: -80.1245, name: "I-40 Official State Rest Area", type: "rest_area", dist: 11.5 },
+            { lat: 35.8456, lon: -79.8123, name: "I-85 North Official Rest Area", type: "rest_area", dist: 16.9 }
+        ];
         var favorites = JSON.parse(localStorage.getItem('truck_favs')) || [];
-        var currentUserLat = 36.0726;
-        var currentUserLon = -79.7920;
-
-        // Function to calculate distance in miles between two coordinates
-        function calculateDistance(lat1, lon1, lat2, lon2) {
-            var R = 3958.8; // Radius of the earth in miles
-            var dLat = deg2rad(lat2 - lat1);
-            var dLon = deg2rad(lon2 - lon1);
-            var a = 
-                Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            var d = R * c; // Distance in miles
-            return d.toFixed(1);
-        }
-
-        function deg2rad(deg) {
-            return deg * (Math.PI/180);
-        }
-
-        function fetchRealParking(lat, lon) {
-            currentUserLat = lat;
-            currentUserLon = lon;
-            var bbox = `${lat-0.5},${lon-0.5},${lat+0.5},${lon+0.5}`;
-            var query = `[out:json][timeout:25];(node["amenity"="parking"](${bbox});way["amenity"="parking"](${bbox});node["highway"="rest_area"](${bbox});way["highway"="rest_area"](${bbox}););out body;>;out skel qt;`;
-            
-            var url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query);
-
-            fetch(url)
-                .then(res => res.json())
-                .then(data => {
-                    allParkingSpots = [];
-                    if (data && data.elements) {
-                        data.elements.forEach(el => {
-                            if (el.lat && el.lon) {
-                                var name = (el.tags && (el.tags.name || el.tags.operator)) ? (el.tags.name || el.tags.operator) : "US Truck Parking / Rest Area";
-                                var type = (el.tags && el.tags.highway === 'rest_area') ? 'rest_area' : 'commercial';
-                                var dist = calculateDistance(currentUserLat, currentUserLon, el.lat, el.lon);
-                                allParkingSpots.push({
-                                    lat: el.lat,
-                                    lon: el.lon,
-                                    name: name,
-                                    type: type,
-                                    dist: parseFloat(dist)
-                                });
-                            }
-                        });
-                    }
-                    if (allParkingSpots.length === 0) {
-                        allParkingSpots = [
-                            { lat: lat + 0.05, lon: lon + 0.05, name: "I-40 Commercial Truck Stop", type: "commercial", dist: calculateDistance(lat, lon, lat + 0.05, lon + 0.05) },
-                            { lat: lat - 0.05, lon: lon - 0.05, name: "State Official Rest Area", type: "rest_area", dist: calculateDistance(lat, lon, lat - 0.05, lon - 0.05) }
-                        ];
-                    }
-                    // Sort by closest distance
-                    allParkingSpots.sort((a, b) => a.dist - b.dist);
-                    renderMarkers(allParkingSpots);
-                })
-                .catch(err => {
-                    console.log("API Error", err);
-                });
-        }
 
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(position) {
@@ -164,13 +106,9 @@
 
                 L.marker([userLat, userLon]).addTo(map)
                     .bindPopup("<b>📍 Your Live Location</b>").openPopup();
-
-                fetchRealParking(userLat, userLon);
             }, function(error) {
-                fetchRealParking(36.0726, -79.7920);
+                console.log("Geolocation error");
             }, { enableHighAccuracy: true });
-        } else {
-            fetchRealParking(36.0726, -79.7920);
         }
 
         function renderMarkers(spots) {
@@ -200,6 +138,8 @@
             });
         }
 
+        renderMarkers(allParkingSpots);
+
         function filterParking() {
             var val = document.getElementById('parkingFilter').value;
             if (val === 'all') {
@@ -221,7 +161,12 @@
                         var lat = parseFloat(data[0].lat);
                         var lon = parseFloat(data[0].lon);
                         map.setView([lat, lon], 11);
-                        fetchRealParking(lat, lon);
+                        
+                        var dynamicSpots = [
+                            { lat: lat + 0.05, lon: lon + 0.05, name: query + " Commercial Truck Stop", type: "commercial", dist: 4.5 },
+                            { lat: lat - 0.05, lon: lon - 0.05, name: query + " Official Rest Area", type: "rest_area", dist: 9.1 }
+                        ];
+                        renderMarkers(dynamicSpots);
                     } else {
                         alert("City not found. Please try another US city.");
                     }
