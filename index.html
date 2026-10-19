@@ -128,24 +128,42 @@
                 .then(data => {
                     allParkingSpots = [];
                     if (data && data.elements) {
-                        data.elements.forEach(el => {
-                            if (Number.isFinite(el.lat) && Number.isFinite(el.lon)) {
-                                var name = (el.tags && (el.tags.name || el.tags.operator)) ? (el.tags.name || el.tags.operator) : "US Interstate Truck Stop & Rest Area";
-                                var type = (el.tags && el.tags.highway === 'rest_area') ? 'rest_area' : 'commercial';
-                                var dist = calculateDistance(currentUserLat, currentUserLon, el.lat, el.lon);
-                                
-                                // Prevent duplicates
-                                if (!allParkingSpots.some(s => Math.abs(s.lat - el.lat) < 0.001 && Math.abs(s.lon - el.lon) < 0.001)) {
-                                    allParkingSpots.push({
-                                        lat: el.lat,
-                                        lon: el.lon,
-                                        name: name,
-                                        type: type,
-                                        dist: parseFloat(dist)
-                                    });
-                                }
-                            }
-                        });
+                        
+data.elements.forEach(el => {
+    var spotLat = el.lat ?? el.center?.lat;
+    var spotLon = el.lon ?? el.center?.lon;
+
+    if (Number.isFinite(spotLat) && Number.isFinite(spotLon)) {
+        var name = (el.tags && (el.tags.name || el.tags.operator))
+            ? (el.tags.name || el.tags.operator)
+            : "Unnamed Parking or Rest Area";
+
+        var type = (el.tags && el.tags.highway === 'rest_area')
+            ? 'rest_area'
+            : 'commercial';
+
+        var dist = calculateDistance(
+            currentUserLat,
+            currentUserLon,
+            spotLat,
+            spotLon
+        );
+
+        if (!allParkingSpots.some(s =>
+            Math.abs(s.lat - spotLat) < 0.001 &&
+            Math.abs(s.lon - spotLon) < 0.001
+        )) {
+            allParkingSpots.push({
+              lat: spotLat,
+                lon: spotLon,
+                name: name,
+                type: type,
+                dist: parseFloat(dist)
+            });
+        }
+    } 
+});
+
                     }
 
                    
