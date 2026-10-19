@@ -92,9 +92,31 @@
         var markersLayer = L.layerGroup().addTo(map);
         var allParkingSpots = [];
         var favorites = JSON.parse(localStorage.getItem('truck_favs')) || [];
+        var currentUserLat = 36.0726;
+        var currentUserLon = -79.7920;
+
+        // Function to calculate distance in miles between two coordinates
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            var R = 3958.8; // Radius of the earth in miles
+            var dLat = deg2rad(lat2 - lat1);
+            var dLon = deg2rad(lon2 - lon1);
+            var a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            var d = R * c; // Distance in miles
+            return d.toFixed(1);
+        }
+
+        function deg2rad(deg) {
+            return deg * (Math.PI/180);
+        }
 
         function fetchRealParking(lat, lon) {
-            var bbox = `${lat-0.4},${lon-0.4},${lat+0.4},${lon+0.4}`;
+            currentUserLat = lat;
+            currentUserLon = lon;
+            var bbox = `${lat-0.5},${lon-0.5},${lat+0.5},${lon+0.5}`;
             var query = `[out:json][timeout:25];(node["amenity"="parking"](${bbox});way["amenity"="parking"](${bbox});node["highway"="rest_area"](${bbox});way["highway"="rest_area"](${bbox}););out body;>;out skel qt;`;
             
             var url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query);
@@ -108,7 +130,7 @@
                             if (el.lat && el.lon) {
                                 var name = (el.tags && (el.tags.name || el.tags.operator)) ? (el.tags.name || el.tags.operator) : "US Truck Parking / Rest Area";
                                 var type = (el.tags && el.tags.highway === 'rest_area') ? 'rest_area' : 'commercial';
-                                var dist = (Math.random() * 15 + 1).toFixed(1);
+                                var dist = calculateDistance(currentUserLat, currentUserLon, el.lat, el.lon);
                                 allParkingSpots.push({
                                     lat: el.lat,
                                     lon: el.lon,
@@ -121,10 +143,12 @@
                     }
                     if (allParkingSpots.length === 0) {
                         allParkingSpots = [
-                            { lat: lat + 0.05, lon: lon + 0.05, name: "I-40 Commercial Truck Stop", type: "commercial", dist: 4.2 },
-                            { lat: lat - 0.05, lon: lon - 0.05, name: "State Official Rest Area", type: "rest_area", dist: 7.5 }
+                            { lat: lat + 0.05, lon: lon + 0.05, name: "I-40 Commercial Truck Stop", type: "commercial", dist: calculateDistance(lat, lon, lat + 0.05, lon + 0.05) },
+                            { lat: lat - 0.05, lon: lon - 0.05, name: "State Official Rest Area", type: "rest_area", dist: calculateDistance(lat, lon, lat - 0.05, lon - 0.05) }
                         ];
                     }
+                    // Sort by closest distance
+                    allParkingSpots.sort((a, b) => a.dist - b.dist);
                     renderMarkers(allParkingSpots);
                 })
                 .catch(err => {
@@ -136,7 +160,7 @@
             navigator.geolocation.getCurrentPosition(function(position) {
                 var userLat = position.coords.latitude;
                 var userLon = position.coords.longitude;
-                map.setView([userLat, userLon], 10);
+                map.setView([userLat, userLon], 11);
 
                 L.marker([userLat, userLon]).addTo(map)
                     .bindPopup("<b>📍 Your Live Location</b>").openPopup();
@@ -144,7 +168,7 @@
                 fetchRealParking(userLat, userLon);
             }, function(error) {
                 fetchRealParking(36.0726, -79.7920);
-            });
+            }, { enableHighAccuracy: true });
         } else {
             fetchRealParking(36.0726, -79.7920);
         }
@@ -196,7 +220,7 @@
                     if (data && data.length > 0) {
                         var lat = parseFloat(data[0].lat);
                         var lon = parseFloat(data[0].lon);
-                        map.setView([lat, lon], 10);
+                        map.setView([lat, lon], 11);
                         fetchRealParking(lat, lon);
                     } else {
                         alert("City not found. Please try another US city.");
